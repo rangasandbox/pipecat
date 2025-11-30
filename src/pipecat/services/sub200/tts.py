@@ -28,7 +28,10 @@ class Sub200TTSService(TTSService):
         self,
         *,
         base_url: str,
-        description: str,
+        description: Optional[str] = None,
+        voice_id: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
         stream: bool = True,
         timeout: Optional[float] = 30.0,
         sample_rate: Optional[int] = None,
@@ -38,7 +41,10 @@ class Sub200TTSService(TTSService):
 
         Args:
             base_url: Full URL of the Sub200 TTS endpoint.
-            description: Voice description sent with every request.
+            description: Optional voice description passed through to Sub200.
+            voice_id: Optional Sub200 voice identifier.
+            temperature: Optional sampling temperature for synthesis.
+            max_tokens: Optional max token count for the response.
             stream: Whether the Sub200 endpoint should stream output audio.
             timeout: Optional request timeout in seconds.
             sample_rate: Preferred sample rate. If None, Pipecat's start frame
@@ -50,6 +56,9 @@ class Sub200TTSService(TTSService):
         super().__init__(sample_rate=sample_rate, **kwargs)
         self._base_url = base_url.rstrip("/")
         self._description = description
+        self._voice_id = voice_id
+        self._temperature = temperature
+        self._max_tokens = max_tokens
         self._stream = stream
         self._timeout = timeout
 
@@ -86,10 +95,18 @@ class Sub200TTSService(TTSService):
 
         logger.debug(f"{self}: Generating TTS [{text}]")
         payload = {
-            "description": self._description,
             "text": text,
             "stream": self._stream,
         }
+
+        if self._voice_id:
+            payload["voice_id"] = self._voice_id
+        if self._description:
+            payload["description"] = self._description
+        if self._temperature is not None:
+            payload["temperature"] = self._temperature
+        if self._max_tokens is not None:
+            payload["max_tokens"] = self._max_tokens
 
         timeout = aiohttp.ClientTimeout(total=self._timeout) if self._timeout else None
 
