@@ -5,11 +5,15 @@
 #
 
 import sys
-from importlib.metadata import version
+from importlib.metadata import PackageNotFoundError, version
 
 from loguru import logger
 
-__version__ = version("pipecat-ai")
+try:
+    __version__ = version("pipecat-ai")
+except PackageNotFoundError:
+    # Allow running directly from the source tree without an installed dist.
+    __version__ = "0.0.0+local"
 
 logger.info(f"ᓚᘏᗢ Pipecat {__version__} (Python {sys.version}) ᓚᘏᗢ")
 
