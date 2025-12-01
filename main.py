@@ -105,34 +105,19 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 
     stt = DeepgramSTTService(api_key=os.getenv("DEEPGRAM_API_KEY"))
 
-    sub200_base_url = os.getenv("SUB200_TTS_BASE_URL", "http://136.116.73.7/v1/tts/generate")
-    sub200_description = os.getenv("SUB200_TTS_DESCRIPTION")
-    sub200_voice_id = os.getenv("SUB200_TTS_VOICE_ID", "Anirudh")
-    sub200_temperature_env = os.getenv("SUB200_TTS_TEMPERATURE")
-    sub200_max_tokens_env = os.getenv("SUB200_TTS_MAX_TOKENS")
+    sub200_base_url = os.getenv(
+        "SUB200_TTS_BASE_URL", "http://tts.sub200.dev/indic-19/v1/tts/generate"
+    )
+    sub200_voice = os.getenv(
+        "SUB200_TTS_VOICE", os.getenv("SUB200_TTS_VOICE_ID", "Shashank")
+    )
     sub200_stream = os.getenv("SUB200_TTS_STREAM", "true").lower() in ("1", "true", "yes")
     sub200_timeout = float(os.getenv("SUB200_TTS_TIMEOUT", "30"))
     sub200_sample_rate = os.getenv("SUB200_TTS_SAMPLE_RATE")
 
-    print(f"Using Sub200 TTS at {sub200_base_url} with voice_id={sub200_voice_id}, description={sub200_description}, temperature={sub200_temperature_env}, max_tokens={sub200_max_tokens_env}, stream={sub200_stream}, timeout={sub200_timeout}, sample_rate={sub200_sample_rate}")
-
-    sub200_temperature = (
-        float(sub200_temperature_env)
-        if sub200_temperature_env not in (None, "")
-        else 0.0
-    )
-    sub200_max_tokens = (
-        int(sub200_max_tokens_env)
-        if sub200_max_tokens_env not in (None, "")
-        else 500
-    )
-
     tts = Sub200TTSService(
         base_url=sub200_base_url,
-        description=sub200_description,
-        voice_id=sub200_voice_id,
-        temperature=sub200_temperature,
-        max_tokens=sub200_max_tokens,
+        voice=sub200_voice,
         stream=sub200_stream,
         timeout=sub200_timeout,
         sample_rate=int(sub200_sample_rate) if sub200_sample_rate else None,
