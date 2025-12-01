@@ -35,11 +35,14 @@ from pipecat.processors.aggregators.llm_response_universal import LLMContextAggr
 from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
 from pipecat.runner.types import RunnerArguments
 from pipecat.runner.utils import create_transport
+from deepgram import LiveOptions
+
 from pipecat.services.deepgram.stt import DeepgramSTTService
 from pipecat.services.openai.llm import OpenAILLMService
 from pipecat.services.sub200.tts import Sub200TTSService
 from pipecat.transports.base_transport import BaseTransport, TransportParams
 from pipecat.transports.websocket.fastapi import FastAPIWebsocketParams
+from pipecat.transcriptions.language import Language
 
 load_dotenv(override=True)
 
@@ -103,7 +106,10 @@ transport_params = {
 async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     logger.info(f"Starting bot")
 
-    stt = DeepgramSTTService(api_key=os.getenv("DEEPGRAM_API_KEY"))
+    stt = DeepgramSTTService(
+        api_key=os.getenv("DEEPGRAM_API_KEY"),
+        live_options=LiveOptions(language=Language.HI, model="nova-3-general"),
+    )
 
     sub200_base_url = os.getenv(
         "SUB200_TTS_BASE_URL", "http://tts.sub200.dev/indic-19/v1/tts/generate"
