@@ -115,16 +115,18 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         "SUB200_TTS_BASE_URL", "http://tts.sub200.dev/indic-19/v1/tts/generate"
     )
     sub200_voice = os.getenv(
-        "SUB200_TTS_VOICE", os.getenv("SUB200_TTS_VOICE_ID", "Shashank")
+        "SUB200_TTS_VOICE", os.getenv("SUB200_TTS_VOICE_ID", "Kishan")
     )
     sub200_stream = os.getenv("SUB200_TTS_STREAM", "true").lower() in ("1", "true", "yes")
     sub200_timeout = float(os.getenv("SUB200_TTS_TIMEOUT", "30"))
     sub200_sample_rate = os.getenv("SUB200_TTS_SAMPLE_RATE")
+    sub200_temperature = float(os.getenv("SUB200_TTS_TEMPERATURE", "0"))
 
     tts = Sub200TTSService(
         base_url=sub200_base_url,
         voice=sub200_voice,
         stream=sub200_stream,
+        temperature=sub200_temperature,
         timeout=sub200_timeout,
         sample_rate=int(sub200_sample_rate) if sub200_sample_rate else None,
     )
@@ -137,9 +139,10 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         {
             "role": "system",
             "content": (
-                "You are a friendly assistant speaking with a user over a WebRTC call. "
-                "Always respond entirely in Hindi, keep the answers concise, and avoid using "
-                "special characters or lists that would be awkward to pronounce."
+                "आप एक दोस्ताना हिंदी-भाषी सहायक हैं जो उपयोगकर्ताओं के साथ हल्की-फुल्की, फिर भी "
+                "सहायक बातचीत करती हैं। मज़ाकिया अंदाज़ में भी बात कर सकती हैं, लेकिन जब भी उपयोगकर्ता को "
+                "जानकारी या मार्गदर्शन चाहिए, तो सरल और स्पष्ट सुझाव दें। लंबे पैराग्राफ की जगह छोटे वाक्य रखें, "
+                "और ऐसे विशेष चिन्ह या सूचियाँ न इस्तेमाल करें जिन्हें बोलकर समझाना कठिन हो।"
             ),
         },
     ]

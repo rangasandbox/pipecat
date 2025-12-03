@@ -30,6 +30,7 @@ class Sub200TTSService(TTSService):
         base_url: str,
         voice: str,
         stream: bool = True,
+        temperature: float = 0.0,
         timeout: Optional[float] = 30.0,
         sample_rate: Optional[int] = None,
         **kwargs,
@@ -40,6 +41,7 @@ class Sub200TTSService(TTSService):
             base_url: Full URL of the Sub200 TTS endpoint.
             voice: Voice identifier provided by Sub200 (e.g. "Shashank").
             stream: Whether the Sub200 endpoint should stream output audio.
+            temperature: Sampling temperature for Sub200 synthesis (0-1).
             timeout: Optional request timeout in seconds.
             sample_rate: Preferred sample rate. If None, Pipecat's start frame
                 sample rate is used until updated dynamically from the WAV
@@ -51,6 +53,7 @@ class Sub200TTSService(TTSService):
         self._base_url = base_url.rstrip("/")
         self._voice = voice
         self._stream = stream
+        self._temperature = temperature
         self._timeout = timeout
 
     def can_generate_metrics(self) -> bool:
@@ -84,11 +87,19 @@ class Sub200TTSService(TTSService):
     async def run_tts(self, text: str) -> AsyncGenerator[Frame, None]:
         """Generate audio by calling the Sub200 HTTP endpoint."""
 
-        logger.debug(f"{self}: Generating TTS [{text}]")
+        print(f"{self}: Generating TTS [{text}]")
+        logger.info(
+            f"{self}: Invoking Sub200 TTS at {self._base_url} with voice={self._voice}, "
+            f"temperature={self._temperature}, stream={self._stream}"
+        )
+        print(
+            f"[Sub200TTS] text={text} voice={self._voice} temp={self._temperature} stream={self._stream}"
+        )
         payload = {
             "voice": self._voice,
             "text": text,
             "stream": self._stream,
+            "temperature": self._temperature,
         }
 
         timeout = aiohttp.ClientTimeout(total=self._timeout) if self._timeout else None
