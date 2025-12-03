@@ -13,6 +13,7 @@ from pipecat.audio.turn.smart_turn.base_smart_turn import SmartTurnParams
 from pipecat.audio.vad.vad_analyzer import VADParams
 from pipecat.frames.frames import (
     BotStartedSpeakingFrame,
+    BotStoppedSpeakingFrame,
     EmulateUserStartedSpeakingFrame,
     EmulateUserStoppedSpeakingFrame,
     Frame,
@@ -30,6 +31,7 @@ from pipecat.frames.frames import (
     SpeechControlParamsFrame,
     TextFrame,
     TranscriptionFrame,
+    TTSTextFrame,
     UserStartedSpeakingFrame,
     UserStoppedSpeakingFrame,
 )
@@ -67,6 +69,7 @@ from pipecat.services.openai.llm import (
     OpenAIUserContextAggregator,
 )
 from pipecat.tests.utils import SleepFrame, run_test
+from pipecat.utils.text.base_text_aggregator import AggregationType
 
 AGGREGATION_TIMEOUT = 0.1
 AGGREGATION_SLEEP = 0.15
@@ -697,6 +700,33 @@ class BaseTestAssistantContextAggregator:
             expected_down_frames=expected_down_frames,
         )
         self.check_message_content(context, 0, "Hello Pipecat. How are you?")
+
+    async def test_text_added_after_tts(self):
+        assert self.CONTEXT_CLASS is not None, "CONTEXT_CLASS must be set in a subclass"
+        assert self.AGGREGATOR_CLASS is not None, "AGGREGATOR_CLASS must be set in a subclass"
+
+        context = self.CONTEXT_CLASS()
+        aggregator = self.AGGREGATOR_CLASS(context)
+
+        llm_frame = TextFrame(text="Hello Pipecat!")
+        llm_frame.append_to_context = False
+
+        tts_frame = TTSTextFrame("Hello Pipecat!", aggregated_by=AggregationType.SENTENCE)
+
+        frames_to_send = [
+            LLMFullResponseStartFrame(),
+            llm_frame,
+            LLMFullResponseEndFrame(),
+            tts_frame,
+            BotStoppedSpeakingFrame(),
+        ]
+        expected_down_frames = [*self.EXPECTED_CONTEXT_FRAMES, BotStoppedSpeakingFrame]
+        await run_test(
+            aggregator,
+            frames_to_send=frames_to_send,
+            expected_down_frames=expected_down_frames,
+        )
+        self.check_message_content(context, 0, "Hello Pipecat!")
 
     async def test_multiple_llm_responses(self):
         assert self.CONTEXT_CLASS is not None, "CONTEXT_CLASS must be set in a subclass"

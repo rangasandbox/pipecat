@@ -289,6 +289,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed `LLMAssistantAggregator` (both universal and provider-specific versions)
+  ignoring `TTSTextFrame` output that arrives after the LLM response finishes.
+  When TTS services defer adding text to the context until after speech is
+  spoken, assistant turns are now preserved so subsequent LLM calls receive the
+  complete conversation history.
+
 - Fixed an issue in `AWSBedrockLLMService` where the `aws_region` arg was
   always set to `us-east-1`.
 

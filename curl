@@ -1,0 +1,4 @@
+curl -X POST "http://tts.sub200.dev/indic-19/v1/tts/generate"   -H "Content-Type: application/json"   -d '{ "voice":"Shashank",
+    "text": "<excited> नमस्ते! <laugh> मुझे यकीन नहीं हो रहा कि आज सब कुछ इतना बढ़िया चल रहा है। <curious> ज़रा सोचो, अगर तकनीक इसी रफ़्तार से आगे बढ़ती रही, तो आने वाले सालों में हम क्या-क्या बना पाएँगे? ",
+    "stream": true
+  }' | ffplay -nodisp -autoexit -

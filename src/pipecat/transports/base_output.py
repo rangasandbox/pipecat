@@ -675,6 +675,10 @@ class BaseOutputTransport(FrameProcessor):
                 await self._transport.send_message(frame)
             elif isinstance(frame, OutputDTMFFrame):
                 await self._transport.write_dtmf(frame)
+            else:
+                # Forward non-media frames (e.g. TTSTextFrame) so downstream processors
+                # like context aggregators can observe them after audio playback.
+                await self._transport.push_frame(frame)
 
         def _next_frame(self) -> AsyncGenerator[Frame, None]:
             """Generate the next frame for audio processing.
