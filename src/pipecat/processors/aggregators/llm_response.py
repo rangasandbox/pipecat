@@ -49,6 +49,7 @@ from pipecat.frames.frames import (
     SpeechControlParamsFrame,
     StartFrame,
     TextFrame,
+    TTSTextFrame,
     TranscriptionFrame,
     UserImageRawFrame,
     UserStartedSpeakingFrame,
@@ -1001,7 +1002,11 @@ class LLMAssistantContextAggregator(LLMContextResponseAggregator):
         await self.push_aggregation()
 
     async def _handle_text(self, frame: TextFrame):
-        if not self._started or not frame.append_to_context:
+        if not frame.append_to_context:
+            return
+
+        is_tts_frame = isinstance(frame, TTSTextFrame)
+        if not self._started and not is_tts_frame:
             return
 
         if self._params.expect_stripped_words:

@@ -20,7 +20,7 @@ from pipecat.audio.turn.smart_turn.base_smart_turn import SmartTurnParams
 from pipecat.audio.turn.smart_turn.local_smart_turn_v3 import LocalSmartTurnAnalyzerV3
 from pipecat.audio.vad.silero import SileroVADAnalyzer
 from pipecat.audio.vad.vad_analyzer import VADParams
-from pipecat.frames.frames import Frame, LLMRunFrame, MetricsFrame
+from pipecat.frames.frames import Frame, LLMMessagesAppendFrame, MetricsFrame
 from pipecat.metrics.metrics import (
     LLMUsageMetricsData,
     ProcessingMetricsData,
@@ -30,8 +30,8 @@ from pipecat.metrics.metrics import (
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.task import PipelineParams, PipelineTask
-from pipecat.processors.aggregators.llm_context import LLMContext
-from pipecat.processors.aggregators.llm_response_universal import LLMContextAggregatorPair
+from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContext
+from pipecat.processors.aggregators.llm_text_processor import LLMTextProcessor
 from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
 from pipecat.runner.types import RunnerArguments
 from pipecat.runner.utils import create_transport
@@ -40,6 +40,7 @@ from deepgram import LiveOptions
 from pipecat.services.deepgram.stt import DeepgramSTTService
 from pipecat.services.openai.llm import OpenAILLMService
 from pipecat.services.sub200.tts import Sub200TTSService
+from pipecat.utils.text.full_response_aggregator import FullResponseAggregator
 from pipecat.transports.base_transport import BaseTransport, TransportParams
 from pipecat.transports.websocket.fastapi import FastAPIWebsocketParams
 from pipecat.transcriptions.language import Language
@@ -139,16 +140,22 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         {
             "role": "system",
             "content": (
-                "आप एक दोस्ताना हिंदी-भाषी सहायक हैं जो उपयोगकर्ताओं के साथ हल्की-फुल्की, फिर भी "
-                "सहायक बातचीत करती हैं। मज़ाकिया अंदाज़ में भी बात कर सकती हैं, लेकिन जब भी उपयोगकर्ता को "
-                "जानकारी या मार्गदर्शन चाहिए, तो सरल और स्पष्ट सुझाव दें। लंबे पैराग्राफ की जगह छोटे वाक्य रखें, "
-                "और ऐसे विशेष चिन्ह या सूचियाँ न इस्तेमाल करें जिन्हें बोलकर समझाना कठिन हो।"
+                "आप किशन नाम के एक विनम्र और पेशेवर ग्राहक सहायता प्रतिनिधि हैं। आपकी भूमिका उपयोगकर्ता के साथ "
+                "पूरी तरह हिंदी में बात करते हुए बैंकिंग, निवेश और वित्तीय योजना से लेकर सामान्य जीवन-प्रबंधन "
+                "तक हर विषय पर स्पष्ट और भरोसेमंद सलाह देना है। स्वर गर्मजोशी भरा हो, लेकिन जानकारी ठोस और "
+                "व्यावहारिक रहे। जहां ज़रूरत हो, आप हल्की-फुल्की बातें भी कर सकते हैं ताकि बातचीत सहज लगे। "
+                "जब भी उपयोगकर्ता किसी समस्या या लक्ष्य का ज़िक्र करे, आप कदम-दर-कदम मार्गदर्शन दें, जोखिम और "
+                "लाभ दोनों पर चर्चा करें, और आगे क्या करना चाहिए इसका साफ़ सुझाव दें। "
+                "यदि भावनाओं या अभिव्यक्तियों को उजागर करना हो तो उपलब्ध टैग <angry>, <excited>, <calm>, "
+                "<friendly>, <sad>, <sympathetic>, <urgent> आदि का प्रयोग करें (जैसे <calm> कृपया चिंता "
+                "न करें)। टैग छोटे हों, केवल भावना का नाम रखें, और वाक्य का हिस्सा बनें।"
             ),
         },
     ]
 
-    context = LLMContext(messages)
-    context_aggregator = LLMContextAggregatorPair(context)
+    context = OpenAILLMContext(messages)
+    context_aggregator = llm.create_context_aggregator(context)
+    full_response_processor = LLMTextProcessor(text_aggregator=FullResponseAggregator())
 
     pipeline = Pipeline(
         [
@@ -156,6 +163,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
             stt,
             context_aggregator.user(),
             llm,
+            full_response_processor,
             tts,
             ml,
             transport.output(),
@@ -174,10 +182,8 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 
     @transport.event_handler("on_client_connected")
     async def on_client_connected(transport, client):
-        logger.info(f"Client connected")
-        # Kick off the conversation.
-        messages.append({"role": "system", "content": "Please introduce yourself to the user."})
-        await task.queue_frames([LLMRunFrame()])
+        logger.info("Client connected")
+       
 
     @transport.event_handler("on_client_disconnected")
     async def on_client_disconnected(transport, client):
